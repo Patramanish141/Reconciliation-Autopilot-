@@ -1,0 +1,47 @@
+{
+  "matched": [
+    {
+      "order_id": "ord_1002",
+      "transaction_id": "pay_102",
+      "amount": 150000
+    },
+    {
+      "order_id": "ord_1003",
+      "transaction_id": "pay_103",
+      "amount": 89900
+    }
+  ],
+  "flags": [
+    {
+      "type": "AMOUNT_MISMATCH",
+      "order_id": "ord_1001",
+      "transaction_id": "pay_101",
+      "message": "Payment pay_101 was \u20b94999.00 but settled as \u20b94879.00. Difference: \u20b9120.00 (fee or error).",
+      "ai_explanation": "Payment pay_101 was collected from the customer for \u20b94,999.00, but only \u20b94,879.00 was settled into your bank account. This \u20b9120.00 difference is likely due to standard Razorpay transaction processing fees and applicable taxes (GST) deducted during settlement.",
+      "ai_action": "Check the fee breakdown for pay_101 in your Razorpay Dashboard under the Settlements tab to verify if the \u20b9120 deduction aligns with your agreed MDR rates."
+    },
+    {
+      "type": "PAYMENT_NOT_SETTLED",
+      "order_id": "ord_1004",
+      "transaction_id": "pay_104",
+      "message": "Payment pay_104 for order ord_1004 (\u20b92000.00) was captured but not found in any settlement.",
+      "ai_explanation": "Payment pay_104 for \u20b92,000.00 was successfully collected from your customer, but the funds haven't been transferred to your bank account yet. This usually happens when the payment is still within its standard settlement window (e.g., T+2 days) or is queued for the next processing batch.",
+      "ai_action": "Check your Razorpay Dashboard under 'Settlements' to see if this transaction is scheduled for an upcoming payout, and reach out to Razorpay support with payment ID pay_104 if it exceeds your standard settlement timeline."
+    },
+    {
+      "type": "DUPLICATE_SETTLEMENT",
+      "order_id": "ord_1005",
+      "transaction_id": "pay_105",
+      "message": "Payment pay_105 for order ord_1005 appears in 2 settlements (possible duplicate credit).",
+      "ai_explanation": "It looks like payment pay_105 for order ord_1005 was included and credited to your bank account twice across two separate settlement batches. This usually happens due to a temporary system retry or processing overlap during settlement creation. As a result, your business may have received an extra payout for this single transaction.",
+      "ai_action": "Verify your bank statements to confirm the duplicate credit and contact Razorpay support to coordinate the adjustment or auto-reversal of the extra funds in your upcoming settlement."
+    },
+    {
+      "type": "ORPHAN_ORDER",
+      "order_id": "ord_1006",
+      "message": "Order ord_1006 (\u20b91200.00) has no corresponding Razorpay payment.",
+      "ai_explanation": "This usually happens when a customer creates an order (ord_1006) on your website or app, but abandons the checkout page before attempting a payment. Because of this, the order was logged in your internal system, but Razorpay never received a corresponding transaction.",
+      "ai_action": "Confirm that no goods or services were dispatched for order ord_1006, and update its status in your system to 'Cancelled' or 'Unpaid'."
+    }
+  ]
+}

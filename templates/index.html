@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconciliation Autopilot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7fb;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .matched-section {
+            border-left: 5px solid #27ae60;
+        }
+        .flags-section {
+            border-left: 5px solid #e74c3c;
+        }
+        .flag-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .flag-item:last-child {
+            border-bottom: none;
+        }
+        .flag-type {
+            font-weight: bold;
+            color: #e74c3c;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+        .matched-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .matched-item:last-child {
+            border-bottom: none;
+        }
+        .ai-text {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        .action {
+            color: #2980b9;
+            font-weight: bold;
+        }
+        .summary {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .summary-box {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 15px 30px;
+            text-align: center;
+        }
+        .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .label {
+            color: #7f8c8d;
+            text-transform: uppercase;
+            font-size: 0.8em;
+        }
+        .upload-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .upload-form input[type="file"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .upload-form button {
+            padding: 10px 20px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .upload-form button:hover {
+            background: #1c5980;
+        }
+        .note {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Reconciliation Autopilot</h1>
+
+        <!-- Upload form -->
+        <div class="card">
+            <h2>Upload Merchant Orders CSV</h2>
+            <form class="upload-form" method="POST" enctype="multipart/form-data">
+                <input type="file" name="csv_file" accept=".csv" required>
+                <button type="submit">Upload & Reconcile</button>
+            </form>
+            <p class="note">CSV columns must be: <strong>order_id, amount, email, order_date</strong></p>
+        </div>
+
+        {% if error %}
+        <div class="card" style="border-left: 5px solid #e74c3c; background:#fff5f5;">
+            <p style="color:#c0392b; margin:0;"><strong>⚠ {{ error }}</strong></p>
+        </div>
+        {% endif %}
+
+        {% if report %}
+        <!-- Summary boxes -->
+        <div class="summary">
+            <div class="summary-box">
+                <div class="number">{{ report.matched|length }}</div>
+                <div class="label">Matched</div>
+            </div>
+            <div class="summary-box">
+                <div class="number" style="color:#e74c3c;">{{ report.flags|length }}</div>
+                <div class="label">Flags</div>
+            </div>
+        </div>
+
+        <!-- Matched transactions -->
+        <div class="card matched-section">
+            <h2>✅ Matched Transactions</h2>
+            {% for m in report.matched %}
+            <div class="matched-item">
+                <span>Order <strong>{{ m.order_id }}</strong> ↔ Payment <strong>{{ m.transaction_id }}</strong></span>
+                <span>₹{{ '%.2f'|format(m.amount/100) }}</span>
+            </div>
+            {% else %}
+            <p>No matched transactions found.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Flagged discrepancies -->
+        <div class="card flags-section">
+            <h2>🚩 Flagged Discrepancies</h2>
+            {% for flag in report.flags %}
+            <div class="flag-item">
+                <div class="flag-type">{{ flag.type }}</div>
+                <p><strong>Original Message:</strong> {{ flag.message }}</p>
+                <div class="ai-text">
+                    <p>
+                        <strong>{% if flag.explanation_source == 'fallback' %}Explanation{% else %}AI Explanation{% endif %}:</strong>
+                        {{ flag.ai_explanation }}
+                        {% if flag.explanation_source == 'fallback' %}
+                        <span style="font-size:0.75em; color:#95a5a6; margin-left:6px;">(offline fallback)</span>
+                        {% endif %}
+                    </p>
+                    <p class="action"><strong>Recommended Action:</strong> {{ flag.ai_action }}</p>
+                </div>
+            </div>
+            {% else %}
+            <p>No flags found. All clear! 🎉</p>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card">
+            <p>No reconciliation report yet. Upload a CSV to get started, or run the default pipeline.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
