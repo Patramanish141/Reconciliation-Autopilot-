@@ -1,11 +1,19 @@
 import json
 import csv
+import hashlib
 
 import config
 
 
 def inr(paise):
     return f"₹{paise/100:.2f}"
+
+
+def _flag_id(flag_type, *parts):
+    """Stable ID for a flag based on its type + key fields, so re-running
+    reconciliation on the same underlying data doesn't lose confirm/dismiss state."""
+    raw = flag_type + "|" + "|".join(str(p) for p in parts)
+    return hashlib.sha1(raw.encode()).hexdigest()[:10]
 
 
 def run_reconciliation(transactions_file=None, settlements_file=None, orders_file=None):
@@ -56,6 +64,7 @@ def run_reconciliation(transactions_file=None, settlements_file=None, orders_fil
 
         if not tx:
             results['flags'].append({
+                'id': _flag_id('ORPHAN_ORDER', order_id),
                 'type': 'ORPHAN_ORDER',
                 'order_id': order_id,
                 'message': f"Order {order_id} ({inr(order_amount)}) has no corresponding Razorpay payment."
@@ -68,6 +77,7 @@ def run_reconciliation(transactions_file=None, settlements_file=None, orders_fil
 
         if len(matching_settlements) == 0:
             results['flags'].append({
+                'id': _flag_id('PAYMENT_NOT_SETTLED', order_id, tx_id),
                 'type': 'PAYMENT_NOT_SETTLED',
                 'order_id': order_id,
                 'transaction_id': tx_id,
@@ -75,6 +85,7 @@ def run_reconciliation(transactions_file=None, settlements_file=None, orders_fil
             })
         elif len(matching_settlements) > 1:
             results['flags'].append({
+                'id': _flag_id('DUPLICATE_SETTLEMENT', order_id, tx_id),
                 'type': 'DUPLICATE_SETTLEMENT',
                 'order_id': order_id,
                 'transaction_id': tx_id,
@@ -85,6 +96,7 @@ def run_reconciliation(transactions_file=None, settlements_file=None, orders_fil
             settlement_amount = settlement['settlement_amount']
             if tx_amount != settlement_amount:
                 results['flags'].append({
+                    'id': _flag_id('AMOUNT_MISMATCH', order_id, tx_id),
                     'type': 'AMOUNT_MISMATCH',
                     'order_id': order_id,
                     'transaction_id': tx_id,
@@ -100,6 +112,7 @@ def run_reconciliation(transactions_file=None, settlements_file=None, orders_fil
     for tx in transactions:
         if tx.get('order_id') not in [o['order_id'] for o in merchant_orders]:
             results['flags'].append({
+                'id': _flag_id('PAYMENT_WITHOUT_ORDER', tx.get('order_id'), tx['id']),
                 'type': 'PAYMENT_WITHOUT_ORDER',
                 'order_id': tx.get('order_id'),
                 'transaction_id': tx['id'],
@@ -110,6 +123,7 @@ def run_reconciliation(transactions_file=None, settlements_file=None, orders_fil
     for s in settlement_transactions:
         if s['transaction_id'] not in known_tx_ids:
             results['flags'].append({
+                'id': _flag_id('UNKNOWN_SETTLEMENT_TRANSACTION', s['settlement_id'], s['transaction_id']),
                 'type': 'UNKNOWN_SETTLEMENT_TRANSACTION',
                 'settlement_id': s['settlement_id'],
                 'transaction_id': s['transaction_id'],

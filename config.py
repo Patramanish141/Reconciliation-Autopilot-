@@ -17,6 +17,7 @@ ORDERS_FILE = os.path.join(DATA_DIR, "merchant_orders.csv")
 
 RAW_REPORT_FILE = os.path.join(DATA_DIR, "reconciliation_report.json")
 ENHANCED_REPORT_FILE = os.path.join(DATA_DIR, "enhanced_report.json")
+FLAG_STATUS_FILE = os.path.join(DATA_DIR, "flag_status.json")
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)

@@ -116,11 +116,79 @@
             font-size: 0.9em;
             margin-top: 10px;
         }
+        .flag-item.status-confirmed {
+            opacity: 0.6;
+            border-left: 3px solid #27ae60;
+            padding-left: 12px;
+        }
+        .flag-item.status-dismissed {
+            opacity: 0.45;
+            border-left: 3px solid #95a5a6;
+            padding-left: 12px;
+        }
+        .flag-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .btn-confirm {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-confirm:hover { background: #219150; }
+        .btn-dismiss {
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+        .btn-dismiss:hover { background: #dcdfe1; }
+        .status-badge {
+            font-size: 0.75em;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #8a6d00;
+        }
+        .status-badge.confirmed {
+            background: #d4edda;
+            color: #1e7e34;
+        }
+        .status-badge.dismissed {
+            background: #e9ecef;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔍 Reconciliation Autopilot</h1>
+
+        <!-- Razorpay live connection check -->
+        <div class="card" style="border-left: 5px solid #2980b9;">
+            <h2>Razorpay API Connection</h2>
+            <p class="note" style="margin-top:0;">
+                Reconciliation below runs on a curated demo dataset (so the specific discrepancy
+                types are reliably reproducible). This checks a live connection to your actual
+                Razorpay account to prove the integration is real.
+            </p>
+            <button class="btn btn-confirm" id="razorpay-check-btn" onclick="checkRazorpayLive()">
+                Check Live Razorpay Connection
+            </button>
+            <div id="razorpay-result" style="margin-top:12px;"></div>
+        </div>
 
         <!-- Upload form -->
         <div class="card">
@@ -168,8 +236,11 @@
         <div class="card flags-section">
             <h2>🚩 Flagged Discrepancies</h2>
             {% for flag in report.flags %}
-            <div class="flag-item">
-                <div class="flag-type">{{ flag.type }}</div>
+            <div class="flag-item status-{{ flag.status }}" id="flag-{{ flag.id }}">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="flag-type">{{ flag.type }}</div>
+                    <span class="status-badge {{ flag.status }}" id="badge-{{ flag.id }}">{{ flag.status }}</span>
+                </div>
                 <p><strong>Original Message:</strong> {{ flag.message }}</p>
                 <div class="ai-text">
                     <p>
@@ -180,6 +251,10 @@
                         {% endif %}
                     </p>
                     <p class="action"><strong>Recommended Action:</strong> {{ flag.ai_action }}</p>
+                </div>
+                <div class="flag-actions">
+                    <button class="btn btn-confirm" onclick="setFlagStatus('{{ flag.id }}', 'confirmed')">✓ Confirm</button>
+                    <button class="btn btn-dismiss" onclick="setFlagStatus('{{ flag.id }}', 'dismissed')">✕ Dismiss</button>
                 </div>
             </div>
             {% else %}
@@ -192,5 +267,65 @@
         </div>
         {% endif %}
     </div>
+
+    <script>
+        function checkRazorpayLive() {
+            const btn = document.getElementById('razorpay-check-btn');
+            const resultDiv = document.getElementById('razorpay-result');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            resultDiv.innerHTML = '';
+
+            fetch('/razorpay/live-check')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok && data.connected) {
+                        resultDiv.innerHTML = `
+                            <div style="background:#eafaf1; border-radius:5px; padding:10px; color:#1e7e46;">
+                                ✅ Connected to Razorpay — ${data.payments_count} payment(s),
+                                ${data.settlements_count} settlement(s) found on this account.
+                            </div>`;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div style="background:#fdecea; border-radius:5px; padding:10px; color:#c0392b;">
+                                ⚠ Could not connect: ${data.error || 'Unknown error'}
+                            </div>`;
+                    }
+                })
+                .catch(err => {
+                    resultDiv.innerHTML = `
+                        <div style="background:#fdecea; border-radius:5px; padding:10px; color:#c0392b;">
+                            ⚠ Network error: ${err}
+                        </div>`;
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Check Live Razorpay Connection';
+                });
+        }
+
+        function setFlagStatus(flagId, status) {
+            fetch(`/flag/${flagId}/status`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `status=${status}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.ok) {
+                    alert('Could not update flag: ' + data.error);
+                    return;
+                }
+                const item = document.getElementById(`flag-${flagId}`);
+                const badge = document.getElementById(`badge-${flagId}`);
+                item.classList.remove('status-pending', 'status-confirmed', 'status-dismissed');
+                item.classList.add(`status-${status}`);
+                badge.classList.remove('pending', 'confirmed', 'dismissed');
+                badge.classList.add(status);
+                badge.textContent = status;
+            })
+            .catch(err => alert('Network error updating flag: ' + err));
+        }
+    </script>
 </body>
 </html>
