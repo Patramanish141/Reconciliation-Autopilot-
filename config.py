@@ -15,6 +15,14 @@ TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")
 SETTLEMENTS_FILE = os.path.join(DATA_DIR, "settlements.json")
 ORDERS_FILE = os.path.join(DATA_DIR, "merchant_orders.csv")
 
+# Live Razorpay data gets its OWN files, separate from the mock demo data above.
+# These used to share the same paths, which meant checking the "use live data"
+# box would silently overwrite the mock dataset - breaking the demo path even
+# after unchecking the box again. Keeping them separate means either mode is
+# always available, independent of what you last ran.
+LIVE_TRANSACTIONS_FILE = os.path.join(DATA_DIR, "live_transactions.json")
+LIVE_SETTLEMENTS_FILE = os.path.join(DATA_DIR, "live_settlements.json")
+
 RAW_REPORT_FILE = os.path.join(DATA_DIR, "reconciliation_report.json")
 ENHANCED_REPORT_FILE = os.path.join(DATA_DIR, "enhanced_report.json")
 FLAG_STATUS_FILE = os.path.join(DATA_DIR, "flag_status.json")

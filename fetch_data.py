@@ -47,8 +47,9 @@ def fetch_settlements(count=50):
 def fetch_and_save_live_data():
     """
     Attempt to pull real payments + settlements from Razorpay and write them
-    to config.TRANSACTIONS_FILE / config.SETTLEMENTS_FILE in the same shape
-    reconcile.py already expects.
+    to config.LIVE_TRANSACTIONS_FILE / config.LIVE_SETTLEMENTS_FILE - separate
+    files from the mock demo dataset, so using live data never overwrites or
+    corrupts the demo path.
 
     Returns a dict describing what happened, so callers (e.g. app.py) can
     show an honest status message instead of silently mocking data.
@@ -75,10 +76,11 @@ def fetch_and_save_live_data():
         return status
 
     # Normalize into the same {"items": [...]} shape reconcile.py expects.
-    with open(config.TRANSACTIONS_FILE, "w") as f:
+    # Written to LIVE_* paths - the mock data.json files are never touched.
+    with open(config.LIVE_TRANSACTIONS_FILE, "w") as f:
         json.dump({"items": payments.get("items", [])}, f, indent=2)
 
-    with open(config.SETTLEMENTS_FILE, "w") as f:
+    with open(config.LIVE_SETTLEMENTS_FILE, "w") as f:
         json.dump({"items": settlements.get("items", [])}, f, indent=2)
 
     status["note"] = (

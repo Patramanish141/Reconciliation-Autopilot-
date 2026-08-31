@@ -265,12 +265,41 @@
         <!-- Upload form -->
         <div class="card">
             <h2>Upload Merchant Orders CSV</h2>
-            <form class="upload-form" method="POST" enctype="multipart/form-data">
-                <input type="file" name="csv_file" accept=".csv" required>
-                <button type="submit">Upload & Reconcile</button>
+            <form class="upload-form" method="POST" action="/upload" enctype="multipart/form-data" style="flex-direction:column; align-items:stretch; gap:14px;">
+                <div style="display:flex; gap:10px;">
+                    <input type="file" name="csv_file" accept=".csv" required>
+                    <button type="submit">Upload & Reconcile</button>
+                </div>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.9em; color:var(--rzp-muted);">
+                    <input type="checkbox" name="use_live_data">
+                    Reconcile against my live Razorpay payments instead of demo data
+                </label>
             </form>
             <p class="note">CSV columns must be: <strong>order_id, amount, email, order_date</strong></p>
         </div>
+
+        <!-- Demo dataset -->
+        <div class="card" style="border-left: 4px solid #8e44ad;">
+            <h2>Or, Load the Demo Dataset</h2>
+            <p class="note" style="margin-top:0;">
+                Runs a curated sample dataset with the specific discrepancy types
+                (fee mismatch, missing settlement, duplicate settlement, ID drift)
+                so they're reliably reproducible for a walkthrough.
+            </p>
+            <form method="POST" action="/demo">
+                <button type="submit" class="btn" style="background:#8e44ad; color:white;">
+                    Load Demo Dataset
+                </button>
+            </form>
+        </div>
+
+        {% if razorpay_status %}
+        <div class="card" style="border-left: 4px solid var(--rzp-blue); background: var(--rzp-blue-light);">
+            <p style="margin:0; color: var(--rzp-navy);">
+                <strong>Live data:</strong> {{ razorpay_status.note }}
+            </p>
+        </div>
+        {% endif %}
 
         {% if error %}
         <div class="card" style="border-left: 5px solid #e74c3c; background:#fff5f5;">
@@ -351,8 +380,11 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="card">
-            <p>No reconciliation report yet. Upload a CSV to get started, or run the default pipeline.</p>
+        <div class="card" style="text-align:center; padding:40px 20px;">
+            <p style="color:var(--rzp-muted); margin:0;">
+                No reconciliation run yet. Upload your merchant orders CSV above,
+                or click <strong>Load Demo Dataset</strong> to see it in action.
+            </p>
         </div>
         {% endif %}
     </div>
