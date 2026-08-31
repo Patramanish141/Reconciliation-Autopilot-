@@ -66,9 +66,15 @@ no markdown fences, with keys "explanation" and "action".
 
 
 def enhance_report(report):
-    """Add AI (or fallback) explanations to each flag and return enhanced report."""
+    """Add AI (or fallback) explanations to each flag and return enhanced report.
+    Flags that already carry an ai_explanation (e.g. POSSIBLE_MATCH suggestions
+    from fuzzy_match.py, which generate their own reasoning) are left untouched -
+    this only fills in explanations for the standard reconcile.py flag types."""
     enhanced_flags = []
     for flag in report['flags']:
+        if flag.get('ai_explanation'):
+            enhanced_flags.append(flag)
+            continue
         explanation, action, source = get_explanation(flag)
         flag['ai_explanation'] = explanation
         flag['ai_action'] = action
@@ -78,9 +84,12 @@ def enhance_report(report):
 
 
 if __name__ == "__main__":
+    import fuzzy_match
+
     with open(config.RAW_REPORT_FILE, 'r') as f:
         report = json.load(f)
     enhanced = enhance_report(report)
+    enhanced['flags'].extend(fuzzy_match.run_fuzzy_matching(report))
     with open(config.ENHANCED_REPORT_FILE, 'w') as f:
         json.dump(enhanced, f, indent=2)
     print(f"Enhanced report saved to {config.ENHANCED_REPORT_FILE}")

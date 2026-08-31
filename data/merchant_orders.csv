@@ -1,0 +1,7 @@
+order_id,amount,email,order_date
+ord_1001,499900,customer1@example.com,2024-07-01
+ord_1002,150000,customer2@example.com,2024-07-02
+ord_1003,89900,customer3@example.com,2024-07-03
+ord_1004,200000,customer4@example.com,2024-07-04
+ord_1005,39900,customer5@example.com,2024-07-05
+ord_1006,120000,customer6@example.com,2024-07-06

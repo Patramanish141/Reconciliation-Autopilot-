@@ -5,89 +5,156 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconciliation Autopilot</title>
     <style>
+        :root {
+            --rzp-navy: #0C2651;
+            --rzp-navy-light: #163a6e;
+            --rzp-blue: #0D94FB;
+            --rzp-blue-light: #EAF6FF;
+            --rzp-bg: #F5F7FA;
+            --rzp-text: #1A2B4A;
+            --rzp-muted: #6B7A99;
+            --rzp-border: #E3E8F0;
+        }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f4f7fb;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--rzp-bg);
             margin: 0;
-            padding: 20px;
-            color: #333;
+            padding: 0 0 40px 0;
+            color: var(--rzp-text);
+        }
+        .topbar {
+            background: var(--rzp-navy);
+            padding: 18px 24px;
+            margin-bottom: 24px;
+        }
+        .topbar-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .topbar-inner h1 {
+            margin: 0;
+            font-size: 1.3em;
+            color: white;
+            font-weight: 600;
+        }
+        .topbar-inner .badge-live {
+            background: var(--rzp-blue);
+            color: white;
+            font-size: 0.7em;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
         }
         .container {
             max-width: 1000px;
             margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
+            padding: 0 20px;
         }
         .card {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--rzp-border);
+            box-shadow: 0 1px 3px rgba(12,38,81,0.06);
+            padding: 22px;
             margin-bottom: 20px;
         }
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.05em;
+            color: var(--rzp-navy);
+        }
         .matched-section {
-            border-left: 5px solid #27ae60;
+            border-left: 4px solid #27ae60;
         }
         .flags-section {
-            border-left: 5px solid #e74c3c;
+            border-left: 4px solid #e74c3c;
         }
         .flag-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--rzp-border);
         }
         .flag-item:last-child {
             border-bottom: none;
         }
         .flag-type {
-            font-weight: bold;
-            color: #e74c3c;
+            font-weight: 700;
+            color: #c0392b;
             text-transform: uppercase;
-            font-size: 0.9em;
+            font-size: 0.85em;
             letter-spacing: 0.5px;
+        }
+        .flag-item.fuzzy-match {
+            border-left: 4px solid #8e44ad;
+            background: #faf5fc;
+            padding-left: 12px;
+        }
+        .flag-item.fuzzy-match .flag-type {
+            color: #8e44ad;
+        }
+        .confidence-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            background: #8e44ad;
+            color: white;
+            border-radius: 10px;
+            font-size: 0.75em;
+            text-transform: none;
+            letter-spacing: normal;
+            vertical-align: middle;
         }
         .matched-item {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--rzp-border);
+            font-size: 0.95em;
         }
         .matched-item:last-child {
             border-bottom: none;
         }
         .ai-text {
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 5px;
+            background: var(--rzp-blue-light);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 0.92em;
         }
         .action {
-            color: #2980b9;
-            font-weight: bold;
+            color: var(--rzp-blue);
+            font-weight: 600;
         }
         .summary {
             display: flex;
-            gap: 20px;
+            gap: 14px;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
         }
         .summary-box {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            padding: 15px 30px;
+            border-radius: 12px;
+            border: 1px solid var(--rzp-border);
+            box-shadow: 0 1px 3px rgba(12,38,81,0.06);
+            padding: 14px 26px;
             text-align: center;
+            min-width: 90px;
         }
         .number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #2c3e50;
+            font-size: 1.9em;
+            font-weight: 700;
+            color: var(--rzp-navy);
         }
         .label {
-            color: #7f8c8d;
+            color: var(--rzp-muted);
             text-transform: uppercase;
-            font-size: 0.8em;
+            font-size: 0.72em;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
         }
         .upload-form {
             display: flex;
@@ -97,23 +164,24 @@
         .upload-form input[type="file"] {
             flex: 1;
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: 1px solid var(--rzp-border);
+            border-radius: 6px;
         }
         .upload-form button {
-            padding: 10px 20px;
-            background: #2980b9;
+            padding: 10px 22px;
+            background: var(--rzp-blue);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 600;
         }
         .upload-form button:hover {
-            background: #1c5980;
+            background: #0b7fd6;
         }
         .note {
-            color: #7f8c8d;
-            font-size: 0.9em;
+            color: var(--rzp-muted);
+            font-size: 0.88em;
             margin-top: 10px;
         }
         .flag-item.status-confirmed {
@@ -133,23 +201,23 @@
             margin-top: 12px;
         }
         .btn {
-            padding: 6px 16px;
+            padding: 7px 18px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.85em;
             font-weight: 600;
         }
         .btn-confirm {
-            background: #27ae60;
+            background: var(--rzp-navy);
             color: white;
         }
-        .btn-confirm:hover { background: #219150; }
+        .btn-confirm:hover { background: var(--rzp-navy-light); }
         .btn-dismiss {
-            background: #ecf0f1;
-            color: #7f8c8d;
+            background: #eef1f6;
+            color: var(--rzp-muted);
         }
-        .btn-dismiss:hover { background: #dcdfe1; }
+        .btn-dismiss:hover { background: #dfe4ec; }
         .status-badge {
             font-size: 0.75em;
             font-weight: 700;
@@ -173,11 +241,15 @@
     </style>
 </head>
 <body>
+    <div class="topbar">
+        <div class="topbar-inner">
+            <h1>Reconciliation Autopilot</h1>
+            <span class="badge-live">RAZORPAY BUILDATHON</span>
+        </div>
+    </div>
     <div class="container">
-        <h1>🔍 Reconciliation Autopilot</h1>
-
         <!-- Razorpay live connection check -->
-        <div class="card" style="border-left: 5px solid #2980b9;">
+        <div class="card" style="border-left: 4px solid var(--rzp-blue);">
             <h2>Razorpay API Connection</h2>
             <p class="note" style="margin-top:0;">
                 Reconciliation below runs on a curated demo dataset (so the specific discrepancy
@@ -217,6 +289,18 @@
                 <div class="number" style="color:#e74c3c;">{{ report.flags|length }}</div>
                 <div class="label">Flags</div>
             </div>
+            <div class="summary-box">
+                <div class="number" style="color:#27ae60;" id="count-confirmed">{{ report.flags|selectattr('status', 'equalto', 'confirmed')|list|length }}</div>
+                <div class="label">Confirmed</div>
+            </div>
+            <div class="summary-box">
+                <div class="number" style="color:#95a5a6;" id="count-dismissed">{{ report.flags|selectattr('status', 'equalto', 'dismissed')|list|length }}</div>
+                <div class="label">Dismissed</div>
+            </div>
+            <div class="summary-box">
+                <div class="number" style="color:#f39c12;" id="count-pending">{{ report.flags|selectattr('status', 'equalto', 'pending')|list|length }}</div>
+                <div class="label">Pending Review</div>
+            </div>
         </div>
 
         <!-- Matched transactions -->
@@ -236,9 +320,14 @@
         <div class="card flags-section">
             <h2>🚩 Flagged Discrepancies</h2>
             {% for flag in report.flags %}
-            <div class="flag-item status-{{ flag.status }}" id="flag-{{ flag.id }}">
+            <div class="flag-item status-{{ flag.status }} {% if flag.type == 'POSSIBLE_MATCH' %}fuzzy-match{% endif %}" id="flag-{{ flag.id }}">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div class="flag-type">{{ flag.type }}</div>
+                    <div class="flag-type">
+                        {{ flag.type }}
+                        {% if flag.confidence is defined %}
+                        <span class="confidence-badge">{{ (flag.confidence * 100) | round | int }}% confidence</span>
+                        {% endif %}
+                    </div>
                     <span class="status-badge {{ flag.status }}" id="badge-{{ flag.id }}">{{ flag.status }}</span>
                 </div>
                 <p><strong>Original Message:</strong> {{ flag.message }}</p>
@@ -304,7 +393,21 @@
                 });
         }
 
+        function _currentStatus(item) {
+            if (item.classList.contains('status-confirmed')) return 'confirmed';
+            if (item.classList.contains('status-dismissed')) return 'dismissed';
+            return 'pending';
+        }
+
+        function _adjustCounter(id, delta) {
+            const el = document.getElementById(id);
+            el.textContent = parseInt(el.textContent, 10) + delta;
+        }
+
         function setFlagStatus(flagId, status) {
+            const item = document.getElementById(`flag-${flagId}`);
+            const previousStatus = _currentStatus(item);
+
             fetch(`/flag/${flagId}/status`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -316,13 +419,17 @@
                     alert('Could not update flag: ' + data.error);
                     return;
                 }
-                const item = document.getElementById(`flag-${flagId}`);
                 const badge = document.getElementById(`badge-${flagId}`);
                 item.classList.remove('status-pending', 'status-confirmed', 'status-dismissed');
                 item.classList.add(`status-${status}`);
                 badge.classList.remove('pending', 'confirmed', 'dismissed');
                 badge.classList.add(status);
                 badge.textContent = status;
+
+                if (previousStatus !== status) {
+                    _adjustCounter(`count-${previousStatus}`, -1);
+                    _adjustCounter(`count-${status}`, 1);
+                }
             })
             .catch(err => alert('Network error updating flag: ' + err));
         }

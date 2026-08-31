@@ -6,6 +6,7 @@ from reconcile import run_reconciliation
 from explain_flags import enhance_report
 import flag_status
 import fetch_data
+import fuzzy_match
 import config
 
 app = Flask(__name__)
@@ -32,6 +33,9 @@ def dashboard():
             try:
                 results = run_reconciliation(orders_file=filepath)
                 report = enhance_report(results)
+                report['flags'].extend(
+                    fuzzy_match.run_fuzzy_matching(results, orders_file=filepath)
+                )
             except Exception as e:
                 error = f"Could not process this file: {e}"
         else:
@@ -43,6 +47,7 @@ def dashboard():
         else:
             results = run_reconciliation()
             report = enhance_report(results)
+            report['flags'].extend(fuzzy_match.run_fuzzy_matching(results))
 
     if report:
         flag_status.apply_statuses(report['flags'])

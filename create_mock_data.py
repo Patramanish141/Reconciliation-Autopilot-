@@ -17,7 +17,9 @@ transactions = {
         {"id": "pay_104", "amount": 200000, "status": "captured", "created_at": 1690010800,
          "order_id": "ord_1004", "email": "customer4@example.com", "method": "wallet"},
         {"id": "pay_105", "amount": 39900, "status": "captured", "created_at": 1690014400,
-         "order_id": "ord_1005", "email": "customer5@example.com", "method": "upi"}
+         "order_id": "ord_1005", "email": "customer5@example.com", "method": "upi"},
+        {"id": "pay_106", "amount": 120000, "status": "captured", "created_at": 1720224000,
+         "order_id": "ord_1006_alt", "email": "customer6@example.com", "method": "upi"}
     ]
 }
 

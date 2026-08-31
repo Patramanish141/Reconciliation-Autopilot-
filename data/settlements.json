@@ -1,0 +1,49 @@
+{
+  "items": [
+    {
+      "id": "setl_2001",
+      "amount": 487900,
+      "created_at": 1690020000,
+      "status": "processed",
+      "transactions": [
+        "pay_101"
+      ]
+    },
+    {
+      "id": "setl_2002",
+      "amount": 150000,
+      "created_at": 1690023600,
+      "status": "processed",
+      "transactions": [
+        "pay_102"
+      ]
+    },
+    {
+      "id": "setl_2003",
+      "amount": 89900,
+      "created_at": 1690027200,
+      "status": "processed",
+      "transactions": [
+        "pay_103"
+      ]
+    },
+    {
+      "id": "setl_2004",
+      "amount": 39900,
+      "created_at": 1690030800,
+      "status": "processed",
+      "transactions": [
+        "pay_105"
+      ]
+    },
+    {
+      "id": "setl_2005",
+      "amount": 39900,
+      "created_at": 1690034400,
+      "status": "processed",
+      "transactions": [
+        "pay_105"
+      ]
+    }
+  ]
+}
