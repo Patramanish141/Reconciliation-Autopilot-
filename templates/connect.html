@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Connect Razorpay Account{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px; margin:0 auto; animation-delay:.05s;">
+    <h2>
+        <span class="icon-badge" style="background:var(--rzp-blue-light); color:var(--rzp-blue);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l6-6 4 4-6 6-4-4z"/><path d="M12 15l4-4"/><path d="M8 21l3-3"/><path d="M2 22l4-4"/></svg>
+        </span>
+        Connect Razorpay Account
+    </h2>
+
+    {% if error %}
+    <div class="result-alert error" style="margin-bottom:14px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <p class="note" style="margin-top:0;">
+        Paste your Key ID and Key Secret below. We verify them instantly against Razorpay and keep them
+        in memory for this session only — never written to disk, never asked again after this.
+    </p>
+
+    <form class="connect-form" id="connect-form" method="POST" action="/connect">
+        <div class="field-group">
+            <label for="key_id">Key ID</label>
+            <div class="field-with-toggle">
+                <input type="text" id="key_id" name="key_id" placeholder="rzp_test_XXXXXXXXXXXX" required autocomplete="off" value="{{ key_id or '' }}">
+            </div>
+        </div>
+        <div class="field-group">
+            <label for="key_secret">Key Secret</label>
+            <div class="field-with-toggle">
+                <input type="password" id="key_secret" name="key_secret" placeholder="Your API key secret" required autocomplete="off">
+                <button type="button" class="field-toggle" id="secretToggle" onclick="toggleSecretVisibility()" aria-label="Show secret">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+            <span class="btn-spinner"></span>
+            <span class="btn-label">Connect Razorpay Account</span>
+        </button>
+    </form>
+
+    <p class="note">
+        Find your keys in the Razorpay Dashboard under <strong>Settings → API Keys</strong>.
+    </p>
+    <p class="note" style="text-align:center;">
+        <a href="/reconcile" style="color:var(--rzp-muted); font-weight:600;">Skip for now →</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    function toggleSecretVisibility() {
+        const input = document.getElementById('key_secret');
+        input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    const connectForm = document.getElementById('connect-form');
+    if (connectForm) {
+        connectForm.addEventListener('submit', function () {
+            setButtonLoading(connectForm.querySelector('button[type=submit]'), true);
+            showLoadingOverlay('Verifying your Razorpay credentials', 'Confirming your Key ID and Secret with Razorpay…');
+        });
+    }
+</script>
+{% endblock %}

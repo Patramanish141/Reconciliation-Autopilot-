@@ -13,13 +13,33 @@ import razorpay
 import config
 
 
-def _get_client():
-    if not config.RAZORPAY_KEY_ID or not config.RAZORPAY_KEY_SECRET:
-        raise RuntimeError("RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not configured in .env")
-    return razorpay.Client(auth=(config.RAZORPAY_KEY_ID, config.RAZORPAY_KEY_SECRET))
+def _get_client(key_id=None, key_secret=None):
+    """
+    Uses the given credentials if provided (a merchant connected via the
+    "Connect Razorpay Account" flow - see accounts.py), otherwise falls back
+    to the app owner's own .env credentials.
+    """
+    key_id = key_id or config.RAZORPAY_KEY_ID
+    key_secret = key_secret or config.RAZORPAY_KEY_SECRET
+    if not key_id or not key_secret:
+        raise RuntimeError(
+            "No Razorpay credentials available - connect a Razorpay account, "
+            "or configure RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET in .env"
+        )
+    return razorpay.Client(auth=(key_id, key_secret))
 
 
-def fetch_payments(count=50, captured_only=True):
+def verify_credentials(key_id, key_secret):
+    """
+    Cheaply confirms a Key ID / Key Secret pair actually authenticates against
+    Razorpay, so the "Connect Razorpay Account" form can fail fast with a clear
+    error instead of silently storing bad credentials.
+    """
+    client = razorpay.Client(auth=(key_id, key_secret))
+    client.payment.all({"count": 1})
+
+
+def fetch_payments(count=50, captured_only=True, key_id=None, key_secret=None):
     """
     Fetch recent payments from Razorpay. Returns the raw API response dict,
     filtered to shape {'entity': 'collection', 'count': N, 'items': [...]}.
@@ -28,7 +48,7 @@ def fetch_payments(count=50, captured_only=True):
     only makes sense for money that actually moved. A failed payment will never
     have a settlement, so including it would just create false-positive flags.
     """
-    client = _get_client()
+    client = _get_client(key_id, key_secret)
     result = client.payment.all({"count": count})
 
     if captured_only:
@@ -38,13 +58,13 @@ def fetch_payments(count=50, captured_only=True):
     return result
 
 
-def fetch_settlements(count=50):
+def fetch_settlements(count=50, key_id=None, key_secret=None):
     """Fetch recent settlements from Razorpay. Returns the raw API response dict."""
-    client = _get_client()
+    client = _get_client(key_id, key_secret)
     return client.settlement.all({"count": count})
 
 
-def fetch_and_save_live_data():
+def fetch_and_save_live_data(key_id=None, key_secret=None):
     """
     Attempt to pull real payments + settlements from Razorpay and write them
     to config.LIVE_TRANSACTIONS_FILE / config.LIVE_SETTLEMENTS_FILE - separate
@@ -57,8 +77,8 @@ def fetch_and_save_live_data():
     status = {"source": "live", "payments_count": 0, "settlements_count": 0, "note": ""}
 
     try:
-        payments = fetch_payments()
-        settlements = fetch_settlements()
+        payments = fetch_payments(key_id=key_id, key_secret=key_secret)
+        settlements = fetch_settlements(key_id=key_id, key_secret=key_secret)
     except Exception as e:
         status["source"] = "mock_fallback"
         status["note"] = f"Razorpay API call failed ({e}); using mock data instead."

@@ -1,5 +1,5 @@
 flask>=3.0.0
 python-dotenv>=1.0.0
 razorpay>=1.4.2
-google-genai>=0.3.0
+openai>=1.50.0
 werkzeug>=3.0.0

@@ -30,16 +30,37 @@ FLAG_STATUS_FILE = os.path.join(DATA_DIR, "flag_status.json")
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Gemini settings ---
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-GEMINI_TIMEOUT_SECONDS = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "20"))
-GEMINI_MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
+# --- OpenAI settings ---
+# Switched from Gemini's free tier, which hit both a per-minute AND a 20-per-day
+# hard cap - unworkable for iterating on a demo. Paid OpenAI credit has much
+# higher headroom, so this is the reliable choice for the remaining days before
+# the deadline.
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+OPENAI_TIMEOUT_SECONDS = int(os.getenv("OPENAI_TIMEOUT_SECONDS", "8"))
+OPENAI_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "1"))
+# Cap on concurrent OpenAI calls. Uncapped (one thread per flag) is fine for a
+# handful of flags but could still be excessive on a much larger uploaded
+# dataset - extra flags beyond this cap queue and run as earlier ones finish.
+OPENAI_MAX_CONCURRENT_CALLS = int(os.getenv("OPENAI_MAX_CONCURRENT_CALLS", "8"))
+# OpenAI's paid tier RPM limits are far higher than Gemini's free tier, but
+# still finite - keep a generous-but-real cap as a safety net rather than
+# assuming unlimited throughput. Raise via env var if your usage tier allows more.
+OPENAI_RPM_LIMIT = int(os.getenv("OPENAI_RPM_LIMIT", "60"))
 
 # --- Razorpay settings ---
+# These are the app owner's own keys (from .env) - used as the default/fallback
+# when a visiting merchant hasn't connected their own Razorpay account via the
+# "Connect Razorpay Account" flow (see accounts.py + app.py's /connect route).
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 RAZORPAY_TEST_MODE = os.getenv("RAZORPAY_TEST_MODE", "true").lower() == "true"
+
+# --- Flask session signing ---
+# Only signs the session cookie (which holds a random per-connection token, never
+# the merchant's actual API secret) - so a fresh random key on every restart is
+# fine for this prototype. Set SECRET_KEY in .env for stable sessions across restarts.
+SECRET_KEY = os.getenv("SECRET_KEY") or os.urandom(32).hex()
 
 # --- Fallback explanations (used when Gemini fails / times out) ---
 # Keeps the dashboard from ever showing a broken/blank message during a live demo.

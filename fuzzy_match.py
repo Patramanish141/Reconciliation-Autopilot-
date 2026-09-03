@@ -6,20 +6,21 @@ FAILED exact matching (ORPHAN_ORDER / PAYMENT_WITHOUT_ORDER flags). It never
 touches or overrides an exact match - that logic in reconcile.py is untouched.
 
 Design: candidate scoring (amount/email/date proximity) is deterministic and
-testable without any API calls. Gemini is used only to phrase the plain-English
+testable without any API calls. OpenAI is used only to phrase the plain-English
 reasoning for a candidate - same fallback-safe pattern as explain_flags.py, so
-a Gemini failure degrades to a template sentence, never a crash or blank field.
+an OpenAI failure degrades to a template sentence, never a crash or blank field.
 """
 import concurrent.futures
 import hashlib
 import json
 import csv
 from datetime import datetime, timezone
-from google import genai
+from openai import OpenAI
 
 import config
+from rate_limiter import llm_limiter
 
-client = genai.Client(api_key=config.GEMINI_API_KEY) if config.GEMINI_API_KEY else None
+client = OpenAI(api_key=config.OPENAI_API_KEY) if config.OPENAI_API_KEY else None
 
 CONFIDENCE_THRESHOLD = 0.5  # below this, don't suggest a match at all
 
@@ -71,9 +72,9 @@ def _score_candidate(order, payment):
     return min(score, 1.0), reasons
 
 
-def _gemini_reasoning(order, payment, reasons):
-    """Ask Gemini to phrase the match reasoning in plain English. Falls back to a
-    template sentence built from `reasons` if Gemini fails/times out."""
+def _openai_reasoning(order, payment, reasons):
+    """Ask OpenAI to phrase the match reasoning in plain English. Falls back to a
+    template sentence built from `reasons` if OpenAI fails/times out."""
     fallback = (
         f"Order {order['order_id']} and payment {payment['id']} were not linked by ID, "
         f"but likely match based on: {', '.join(reasons)}. Please verify manually before confirming."
@@ -93,13 +94,17 @@ and telling the finance team what to verify before confirming. No JSON, just the
 """
 
     def _do_call():
-        return client.models.generate_content(model=config.GEMINI_MODEL, contents=prompt)
+        return client.chat.completions.create(
+            model=config.OPENAI_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+        )
 
     try:
+        llm_limiter.acquire()  # wait for a free slot under the shared per-minute quota
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(_do_call)
-            response = future.result(timeout=config.GEMINI_TIMEOUT_SECONDS)
-        text = response.text.strip()
+            response = future.result(timeout=config.OPENAI_TIMEOUT_SECONDS)
+        text = response.choices[0].message.content.strip()
         if text:
             return text, "ai"
         return fallback, "fallback"
@@ -117,8 +122,12 @@ def find_fuzzy_matches(orphan_orders, unmatched_payments):
     Returns a list of suggestion dicts (type='POSSIBLE_MATCH'), one per candidate
     pair scoring above CONFIDENCE_THRESHOLD. Each order/payment is only suggested
     once, matched to its single best candidate (no duplicate suggestions).
+
+    Two passes: (1) deterministic candidate scoring, which is fast and doesn't
+    need parallelizing, (2) OpenAI reasoning calls for confirmed candidates only,
+    run IN PARALLEL rather than one-by-one.
     """
-    suggestions = []
+    candidates = []
     used_payment_ids = set()
 
     for order in orphan_orders:
@@ -133,26 +142,37 @@ def find_fuzzy_matches(orphan_orders, unmatched_payments):
 
         if best_payment and best_score >= CONFIDENCE_THRESHOLD:
             used_payment_ids.add(best_payment['id'])
-            reasoning, source = _gemini_reasoning(order, best_payment, best_reasons)
+            candidates.append((order, best_payment, best_score, best_reasons))
 
-            flag_id = hashlib.sha1(
-                f"POSSIBLE_MATCH|{order['order_id']}|{best_payment['id']}".encode()
-            ).hexdigest()[:10]
+    if not candidates:
+        return []
 
-            suggestions.append({
-                'id': flag_id,
-                'type': 'POSSIBLE_MATCH',
-                'order_id': order['order_id'],
-                'transaction_id': best_payment['id'],
-                'confidence': round(best_score, 2),
-                'message': (
-                    f"Order {order['order_id']} and payment {best_payment['id']} don't share an "
-                    f"ID, but scored {round(best_score * 100)}% likely to be the same transaction."
-                ),
-                'ai_explanation': reasoning,
-                'ai_action': "Review both records and confirm or dismiss this suggested match.",
-                'explanation_source': source,
-            })
+    pool_size = min(len(candidates), config.OPENAI_MAX_CONCURRENT_CALLS)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as executor:
+        reasoning_results = list(executor.map(
+            lambda c: _openai_reasoning(c[0], c[1], c[3]), candidates
+        ))
+
+    suggestions = []
+    for (order, payment, score, reasons), (reasoning, source) in zip(candidates, reasoning_results):
+        flag_id = hashlib.sha1(
+            f"POSSIBLE_MATCH|{order['order_id']}|{payment['id']}".encode()
+        ).hexdigest()[:10]
+
+        suggestions.append({
+            'id': flag_id,
+            'type': 'POSSIBLE_MATCH',
+            'order_id': order['order_id'],
+            'transaction_id': payment['id'],
+            'confidence': round(score, 2),
+            'message': (
+                f"Order {order['order_id']} and payment {payment['id']} don't share an "
+                f"ID, but scored {round(score * 100)}% likely to be the same transaction."
+            ),
+            'ai_explanation': reasoning,
+            'ai_action': "Review both records and confirm or dismiss this suggested match.",
+            'explanation_source': source,
+        })
 
     return suggestions
 
